@@ -1,13 +1,12 @@
----DATA Feb 2, 2020 to Jan 25, 2023
+/*COVID 19 Data Exploration
+DATA Feb 2, 2020 to Jan 25, 2023
+Skills used: Joins, CTE's, Temp Tables, Windows Function, Aggregate Functions, Creating Views, Converting Data Type
+*/
 
 Select * 
 From PortfolioProject..CovidDeaths
 where continent is not null
 order by 3,4
-
---Select * 
---From PortfolioProject..CovidVaccinations
---order by 3,4
 
 --Select Data that we are going to be using
 
@@ -16,58 +15,52 @@ From PortfolioProject..CovidDeaths
 where continent is not null
 order by 1,2
 
---Looking at total cases versus total deaths
---Shows likelihood of death upon contraction of covid in the U.S.
+--Total cases versus Total deaths
+--Likelihood of death upon contraction of covid in the U.S.
 Select location, date, total_cases, total_deaths, (total_deaths/total_cases)*100 AS DeathPercentage
 From PortfolioProject..CovidDeaths
 where location  like '%states%'
 and continent is not null
 order by 1,2
 
---Looking at total cases versus population
---Show was percentage of the population got covid
+--Total cases versus Population
+--The percentage of the population infected with Covid in the U.S.
 Select location, date, population, total_cases, (total_cases/population)*100 AS PercentPopulationInfected
 From PortfolioProject..CovidDeaths
 where location  like '%states%'
 and continent is not null
 order by 1,2
 
---Looking at countries with highest infection rate compared to population
+--Countries with Highest Infection Rate compared to Population
 Select location, population, MAX(total_cases) AS HighestInfectionCount, MAX((total_cases/population))*100 AS PercentPopulationInfected
 From PortfolioProject..CovidDeaths
-where continent is not null
 group by location, population
 order by PercentPopulationInfected desc
 
---Showing countries with the highest death count per population
-Select location, max(cast(total_deaths as bigint)) as TotalDeathCount
+--Countries with the Highest Death Count per Population
+Select location, MAX(cast(total_deaths as bigint)) as TotalDeathCount
 From PortfolioProject..CovidDeaths
-where continent is not null
 group by location
 order by TotalDeathCount desc
 
+
 --Let's break things down by continent
---Showing continents with the highest death count per population
-Select continent, max(cast(total_deaths as bigint)) as TotalDeathCount
+
+--Continents with the highest death count per population
+Select continent, MAX(cast(total_deaths as bigint)) as TotalDeathCount
 From PortfolioProject..CovidDeaths
-where continent is not null
 group by continent
 order by TotalDeathCount desc
 
 --Global numbers
-Select date, sum(new_cases) as total_cases, sum(cast(new_deaths as bigint)) as total_deaths, sum(cast(new_deaths as bigint))/sum(new_cases)*100 as DeathPercentage
-From PortfolioProject..CovidDeaths
-where continent is not null
-group by date
-order by 1,2
-
-Select sum(new_cases) as total_cases, sum(cast(new_deaths as bigint)) as total_deaths, sum(cast(new_deaths as bigint))/sum(new_cases)*100 as DeathPercentage
+Select SUM(new_cases) as Total_Cases, SUM(cast(new_deaths as bigint)) as Total_Deaths, SUM(cast(new_deaths as bigint))/SUM(new_cases)*100 as DeathPercentage
 From PortfolioProject..CovidDeaths
 where continent is not null
 order by 1,2
 
 
---Looking at Total Population vs Vaccinations
+--Total Population vs Vaccinations
+--Percentage of Population that has received at least one Covid Vaccine
 Select dea.continent, dea.location, dea.date, dea.population, vac.new_vaccinations, 
 SUM(cast(vac.new_vaccinations as bigint)) OVER (Partition by dea.location order by dea.location, dea.date) as RollingPeopleVaccinated
 From PortfolioProject..CovidDeaths dea
@@ -77,7 +70,7 @@ Join PortfolioProject..CovidVaccinations vac
 where dea.continent is not null
 order by 2,3
 
---USE CTE
+--Using CTE to perform calculation on partition by in previous query
 With PopvsVac (Continent, Location, Date, Population, new_vaccations, RollingPeopleVaccinated)
 as
 (
@@ -88,12 +81,11 @@ Join PortfolioProject..CovidVaccinations vac
 	on dea.location = vac.location
 	and dea.date = vac.date
 where dea.continent is not null
---order by 2,3
 )
 Select *, (RollingPeopleVaccinated/Population)*100
 From PopvsVac
 
---TEMP TABLE
+--Using Temp Table to perform calculation on partition by in previous query
 DROP Table if exists #PercentPopulationVaccinated 
 Create table #PercentPopulationVaccinated 
 (
@@ -113,7 +105,6 @@ Join PortfolioProject..CovidVaccinations vac
 	on dea.location = vac.location
 	and dea.date = vac.date
 where dea.continent is not null
---order by 2,3
 
 Select *, (RollingPeopleVaccinated/Population)*100
 From #PercentPopulationVaccinated 
